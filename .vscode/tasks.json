@@ -1,0 +1,25 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build C++ DLL (MinGW)",
+            "type": "shell",
+            "command": "D:\\mingw64\\bin\\g++.exe",
+            "args": [
+                "-shared",
+                "-o",
+                "clicker_core.dll",
+                "clicker_core.cpp",
+                "-static"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/AutoClicker_PyCpp"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": "$gcc"
+        }
+    ]
+}

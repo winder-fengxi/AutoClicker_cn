@@ -1,0 +1,13 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: AutoClicker (Hybrid)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/AutoClicker_PyCpp/app.py",
+            "console": "integratedTerminal",
+            "preLaunchTask": "Build C++ DLL (MinGW)"
+        }
+    ]
+}

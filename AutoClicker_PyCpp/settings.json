@@ -1,0 +1,15 @@
+{
+    "hours": "0",
+    "mins": "0",
+    "secs": "0",
+    "millis": "100",
+    "button": "Left",
+    "click_type": "Single",
+    "repeat_mode": "Infinite",
+    "repeat_count": "100",
+    "location_mode": "Current",
+    "x": "0",
+    "y": "0",
+    "top_most": 0,
+    "language": "zh_cn"
+}
