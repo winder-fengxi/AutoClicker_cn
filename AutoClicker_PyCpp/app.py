@@ -57,6 +57,8 @@ class AutoClickerApp:
         self.listener = None       # 键盘监听器对象
         self.mouse_listener = None # 鼠标监听器对象
 
+        self.load_settings() # 从 settings.json 加载之前的设置
+
         # 4. 构建 UI 界面
         self.build_ui()
 
@@ -65,6 +67,33 @@ class AutoClickerApp:
 
         # 处理窗口关闭事件
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
+
+    def load_settings(self):
+        """ 从 settings.json 加载设置 """
+        try:
+            settings_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "settings.json")
+            if os.path.exists(settings_path):
+                with open(settings_path, "r", encoding='utf-8') as f:
+                    settings = json.load(f)
+                    # 加载到 UI 变量
+                    self.hours_var.set(settings.get("hours", "0"))
+                    self.mins_var.set(settings.get("mins", "0"))
+                    self.secs_var.set(settings.get("secs", "0"))
+                    self.millis_var.set(settings.get("millis", "100"))
+                    self.button_var.set(settings.get("button", "Left"))
+                    self.click_type_var.set(settings.get("click_type", "Single"))
+                    self.repeat_mode_var.set(settings.get("repeat_mode", "Infinite"))
+                    self.repeat_count_var.set(settings.get("repeat_count", "100"))
+                    self.location_mode_var.set(settings.get("location_mode", "Current"))
+                    self.picked_x_var.set(settings.get("x", "0"))
+                    self.picked_y_var.set(settings.get("y", "0"))
+                    self.chk_top_var.set(settings.get("top_most", 0))
+                    self.current_lang = settings.get("language", "zh_cn")
+                    if self.current_lang  in self.languages:
+                        self.lang = self.languages[self.current_lang]
+                    self.hotkey_var.set(settings.get("hotkey_start", "F6"))
+        except Exception as e:
+            print(f"Error loading settings: {e}")
 
     def load_languages(self):
         """ 加载 languages.json 文件 """
@@ -331,7 +360,8 @@ class AutoClickerApp:
             "x": self.picked_x_var.get(),
             "y": self.picked_y_var.get(),
             "top_most": self.chk_top_var.get(),
-            "language": self.current_lang
+            "language": self.current_lang,
+            "hotkey_start": self.hotkey_var.get()
         }
         try:
             settings_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "settings.json")
@@ -342,8 +372,37 @@ class AutoClickerApp:
             messagebox.showerror("Error", str(e))
 
     def open_hotkey_settings(self):
-        """ 显示热键提示 """
-        messagebox.showinfo(self.lang["hotkeys"], "Hotkeys:\nStart/Stop: F6")
+        """ 打开热键设置窗口"""
+        
+        top=tk.Toplevel(self.root)
+        top.title(self.lang["hotkeys"])
+        top.geometry("300x150")
+        top.resizable(False, False)
+        top.transient(self.root)
+        top.grab_set()
+
+        lbl_info=ttk.Label(top, text="按任意键设置开始和停止热键", wraplength=280)
+        lbl_info.pack(pady=20)
+
+        current_hotkey=self.hotkey_var.get()
+        lbl_current=ttk.Label(top, text=f"当前热键: {current_hotkey}", font=("Arial", 10, "bold"))
+        lbl_current.pack(pady=10)
+
+        def on_key_press(event):
+            new_key=event.keysym
+            if event.keysym == "??" or not event.keysym: return
+            if event.keysym.lower()in ["shift_l", "shift_r", "control_l", "control_r", "alt_l", "alt_r"]: return
+            if len(new_key) > 1:
+                new_key = new_key.upper()
+            self.hotkey_var.set(new_key)
+            self.save_settings()
+            self.start_hotkey_listener() # 重新启动监听器
+            lbl_current.config(text=f"新热键: {new_key}")
+            lbl_info.config(text="热键已更新！关闭此窗口。")
+        
+        top.bind("<Key>", on_key_press)
+        top.focus_set()
+
 
 
     def load_dll(self):
@@ -379,8 +438,23 @@ class AutoClickerApp:
 
     def start_hotkey_listener(self):
         """ 启动全局键盘监听 (F6) """
-        self.listener = keyboard.GlobalHotKeys({'<f6>': self.toggle_clicking})
-        self.listener.start()
+        hotkey=self.hotkey_var.get()
+        if not hotkey: return
+        #防止监听线程重复
+        if self.listener is not None:
+            try:
+                self.listener.stop()
+            except:
+                pass
+            self.listener = None
+
+        key_map=f"<{hotkey.lower()}>" if len(hotkey) > 1 else hotkey.lower()
+        try:
+            self.listener = keyboard.GlobalHotKeys({key_map: self.toggle_clicking})
+            self.listener.start()
+            print(f"Hotkey listener started: {key_map}")
+        except Exception as e:
+            print(f"Failed to start hotkey {key_map}: {e}")
 
     def toggle_clicking(self):
         """ 热键回调: 切换开始/停止 """
@@ -487,6 +561,7 @@ class AutoClickerApp:
         if self.mouse_listener:
             self.mouse_listener.stop()
         self.root.destroy()
+
 
 if __name__ == "__main__":
     root = tk.Tk()
