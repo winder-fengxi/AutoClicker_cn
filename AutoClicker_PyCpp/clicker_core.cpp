@@ -1,12 +1,11 @@
 #include <windows.h>
+#include <mmsystem.h>
 
 // 全局状态控制变量
-// Global state
-volatile bool g_Running = false; // 控制点击循环是否继续的标志
+volatile bool g_Running = false; // 循环状态标志
 HANDLE g_hThread = NULL;         // 指向后台点击线程的句柄
 
-// 选项结构体，用于从 Python 接收参数
-// Options Structure
+// 选项结构体，从 Python 接收参数
 struct ClickerOptions {
     int intervalMs;       // 点击间隔 (毫秒)
     int buttonCode;       // 鼠标按键代码: 0=左键, 1=右键, 2=中键
@@ -19,14 +18,16 @@ struct ClickerOptions {
 };
 
 // 点击循环线程函数
-// Click loop function
+/*
+ * 功能: 后台点击循环线程的主逻辑，执行具体的鼠标点击操作
+ * 输入参数: lpParam (void* 指针，指向 ClickerOptions 结构体)
+ * 输出结果: 0 (线程正常结束)
+ * 变量名: intervalMs, buttonCode, loopMode, loopCount, locationMode, fixedX, fixedY, doubleClick
+ */
 DWORD WINAPI ClickLoop(LPVOID lpParam) {
     // 1. 提取参数
-    // Extract parameters
     ClickerOptions* opts = (ClickerOptions*)lpParam;
-    
     // 2. 将参数缓存到局部变量以提高访问速度
-    // Cache local variables for speed
     int intervalMs = opts->intervalMs;
     int buttonCode = opts->buttonCode;
     int loopMode = opts->loopMode;
@@ -35,16 +36,13 @@ DWORD WINAPI ClickLoop(LPVOID lpParam) {
     int fixedX = opts->fixedX;
     int fixedY = opts->fixedY;
     bool isDoubleClick = (opts->doubleClick == 1);
-
-    // 3. 参数已复制，立即释放结构体内存
-    // Clean up parameter memory immediately
+    // 释放结构体内存
     delete opts;
 
     int downFlag = 0; // 鼠标按下标志
     int upFlag = 0;   // 鼠标抬起标志
 
     // 4. 根据按键代码映射 Win32 API 标志
-    // Map button type to flags
     if (buttonCode == 0) { // 左键 Left
         downFlag = MOUSEEVENTF_LEFTDOWN;
         upFlag = MOUSEEVENTF_LEFTUP;
@@ -59,27 +57,23 @@ DWORD WINAPI ClickLoop(LPVOID lpParam) {
     long long currentCount = 0; // 当前已执行点击次数
 
     // 5. 进入点击主循环
+    timeBeginPeriod(1);
     while (g_Running) {
         // [步骤 1] 移动鼠标 (如果是固定坐标模式)
-        // Move Mouse if Fixed Location
         if (locationMode == 1) {
             SetCursorPos(fixedX, fixedY);
         }
-
         // [步骤 2] 执行点击动作 (按下 + 抬起)
-        // Perform click
         if (downFlag != 0) mouse_event(downFlag, 0, 0, 0, 0);
         if (upFlag != 0) mouse_event(upFlag, 0, 0, 0, 0);
 
         // [步骤 3] 双击处理 (如果是双击模式，再点一次)
-        // Double Click?
         if (isDoubleClick) {
+            Sleep(50);
             if (downFlag != 0) mouse_event(downFlag, 0, 0, 0, 0);
             if (upFlag != 0) mouse_event(upFlag, 0, 0, 0, 0);
         }
-
         // [步骤 4] 检查循环次数
-        // Check Loop Count
         if (loopMode == 1) {
             currentCount++;
             if (currentCount >= loopCount) {
@@ -87,18 +81,21 @@ DWORD WINAPI ClickLoop(LPVOID lpParam) {
                 break;
             }
         }
-
         // [步骤 5] 休眠等待下一次点击
-        // Sleep
         Sleep(intervalMs);
     }
+    timeEndPeriod(1);
     
     return 0;
 }
 
 extern "C" {
     // 导出函数：启动连点器
-    // Exported function to start clicking with full options
+    /*
+     * 功能: 初始化配置并启动后台点击线程
+     * 输入参数: intervalMs (间隔毫秒), buttonCode (按键代码), loopMode (循环模式), loopCount (循环次数), locationMode (位置模式), fixedX (X坐标), fixedY (Y坐标), doubleClick (双击模式)
+     * 输出结果: 无
+     */
     __declspec(dllexport) void StartClicker(
         int intervalMs, 
         int buttonCode, 
@@ -132,7 +129,11 @@ extern "C" {
     }
 
     // 导出函数：停止连点器
-    // Exported function to stop clicking
+    /*
+     * 功能: 停止后台点击线程并释放资源
+     * 输入参数: 无
+     * 输出结果: 无
+     */
     __declspec(dllexport) void StopClicker() {
         if (!g_Running) return;
 
@@ -147,7 +148,11 @@ extern "C" {
     }
     
     // 导出函数：检查运行状态
-    // Check is running
+    /*
+     * 功能: 获取当前点击器的运行状态
+     * 输入参数: 无
+     * 输出结果: true (运行中) / false (已停止)
+     */
     __declspec(dllexport) bool IsRunning() {
         return g_Running;
     }

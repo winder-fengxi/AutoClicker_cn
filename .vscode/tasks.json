@@ -10,7 +10,8 @@
                 "-o",
                 "clicker_core.dll",
                 "clicker_core.cpp",
-                "-static"
+                "-static",
+                "-lwinmm"
             ],
             "options": {
                 "cwd": "${workspaceFolder}/AutoClicker_PyCpp"

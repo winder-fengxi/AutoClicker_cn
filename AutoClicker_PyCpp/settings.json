@@ -8,9 +8,10 @@
     "repeat_mode": "Infinite",
     "repeat_count": "100",
     "location_mode": "Current",
-    "x": "0",
-    "y": "0",
+    "x": "476",
+    "y": "437",
     "top_most": 0,
     "language": "zh_cn",
-    "hotkey_start": "5"
+    "hotkey_start": "F2",
+    "hotkey_stop": "F3"
 }

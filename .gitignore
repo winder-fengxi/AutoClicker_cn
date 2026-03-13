@@ -279,3 +279,18 @@ __pycache__/
 # tools/
 
 # End of https://www.gitignore.io/api/csharp
+
+# AutoClicker_cn project-specific
+.venv/
+build/
+dist/
+
+# Python runtime/cache
+.pytest_cache/
+.mypy_cache/
+
+# PyInstaller generated spec (keep if you plan to version a custom spec)
+*.spec
+
+# Local runtime settings generated/changed by app
+AutoClicker_PyCpp/settings.json
